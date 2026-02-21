@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Finanzdaten
+*.xhb
+*.hledger
+*.journal
+
 # C extensions
 *.so
 
