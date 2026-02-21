@@ -8,6 +8,12 @@ __pycache__/
 *.hledger
 *.journal
 
+# Speckit (ausführbare Skripts werden nicht versioniert)
+speckit/
+
+# Opencode
+.opencode/
+
 # C extensions
 *.so
 
