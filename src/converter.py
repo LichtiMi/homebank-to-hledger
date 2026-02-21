@@ -9,6 +9,7 @@ Buchungsmodell:
 """
 
 import logging
+import re
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
@@ -20,6 +21,7 @@ from src.models import (
     ACCOUNT_TYPE_CREDITCARD,
     ACCOUNT_TYPE_LIABILITY,
     ACCOUNT_TYPE_NONE,
+    ACCOUNT_TYPE_SAVINGS,
     TXN_STATUS_CLEARED,
     TXN_STATUS_RECONCILED,
     Account,
@@ -44,8 +46,17 @@ _INTERNAL_TRANSFER_PAYMODE = 5
 
 
 def _sanitize_account_name(name: str) -> str:
-    """Bereinigt einen Kontonamen für hledger (ersetzt ':' durch '-')."""
-    return name.replace(":", "-").strip()
+    """
+    Bereinigt einen Kontonamen für hledger.
+
+    - Ersetzt ':' durch '-' (hledger nutzt ':' als Hierarchie-Trenner)
+    - Normalisiert mehrfache Leerzeichen zu einem (hledger nutzt 2+ Leerzeichen
+      als Trennzeichen zwischen Kontoname und Betrag in account-Direktiven)
+    - Entfernt führende/nachfolgende Leerzeichen
+    """
+    sanitized = name.replace(":", "-")
+    sanitized = re.sub(r" {2,}", " ", sanitized)
+    return sanitized.strip()
 
 
 def _account_prefix(account_type: int) -> str:
@@ -57,6 +68,7 @@ def _account_prefix(account_type: int) -> str:
         3: "Aktiva:Vermögen",  # ACCOUNT_TYPE_ASSET
         ACCOUNT_TYPE_CREDITCARD: "Passiva:Kreditkarte",
         ACCOUNT_TYPE_LIABILITY: "Passiva:Darlehen",
+        ACCOUNT_TYPE_SAVINGS: "Aktiva:Spareinlagen",
     }
     return mapping.get(account_type, "Aktiva")
 
@@ -77,6 +89,7 @@ def hledger_account_type_tag(account_type: int) -> str:
         3: "A",  # ACCOUNT_TYPE_ASSET
         ACCOUNT_TYPE_CREDITCARD: "L",
         ACCOUNT_TYPE_LIABILITY: "L",
+        ACCOUNT_TYPE_SAVINGS: "A",
     }
     return mapping.get(account_type, "A")
 
@@ -599,6 +612,7 @@ def _add_account_declarations(
             "account Aktiva:Bank                             ; type: C",
             "account Aktiva:Kasse                            ; type: C",
             "account Aktiva:Vermögen                         ; type: A",
+            "account Aktiva:Spareinlagen                     ; type: A",
             "account Aktiva:Debitoren                        ; type: A",
             "account Passiva                                 ; type: L",
             "account Passiva:Kreditkarte                     ; type: L",
@@ -615,9 +629,12 @@ def _add_account_declarations(
     for account in sorted(hb.accounts.values(), key=lambda a: a.name):
         acc_name = hledger_account_name(account)
         type_tag = hledger_account_type_tag(account.account_type)
-        entry = f"account {acc_name:<55} ; type: {type_tag}"
+        # Geschlossene Konten: Kommentar als Comma-Tag im selben Semikolon.
+        # Zweites ';' würde hledger dazu verleiten, 'C  ; ...' als type-Code zu parsen.
         if account.is_closed:
-            entry += "  ; geschlossen"
+            entry = f"account {acc_name:<55} ; type: {type_tag}, geschlossen: true"
+        else:
+            entry = f"account {acc_name:<55} ; type: {type_tag}"
         journal.account_declarations.append(entry)
 
     # Debitoren-Konten für Payees (Einnahmen)

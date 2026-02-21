@@ -13,6 +13,7 @@ from src.models import (
     ACCOUNT_TYPE_BANK,
     ACCOUNT_TYPE_CASH,
     ACCOUNT_TYPE_CREDITCARD,
+    ACCOUNT_TYPE_SAVINGS,
     Account,
     HomebankFile,
 )
@@ -71,6 +72,18 @@ class TestHledgerAccountName:
             flags=0,
         )
         assert hledger_account_name(acc) == "Aktiva:Bank:Konto-Spar"
+
+    def test_sparbuch_konto_typ_7(self) -> None:
+        """Spareinlagen-Konten (type=7) erhalten das Präfix 'Aktiva:Spareinlagen'."""
+        acc = Account(
+            key=5,
+            name="Sparbuch",
+            account_type=ACCOUNT_TYPE_SAVINGS,
+            currency_key=1,
+            initial_balance=Decimal("5000.00"),
+            flags=0,
+        )
+        assert hledger_account_name(acc) == "Aktiva:Spareinlagen:Sparbuch"
 
 
 class TestConvert:
@@ -206,3 +219,63 @@ class TestCalculateBalances:
         ) + Decimal("-89.34") + Decimal("-200.00")
         # Kasse: 100 + 200 (interne Überweisung)
         assert balances[2] == Decimal("100.00") + Decimal("200.00")
+
+
+class TestBugFixes:
+    """Reproduktionstests für bekannte Bugs (T027, T028)."""
+
+    def test_doppeltes_leerzeichen_in_payee_name_wird_normalisiert(self) -> None:
+        """
+        T027: Mehrfache Leerzeichen in Payee-/Kontonamen werden zu einem Leerzeichen
+        normalisiert.
+
+        hledger verwendet 2+ Leerzeichen als Trennzeichen zwischen Kontoname und Betrag
+        in account-Direktiven. Payees wie 'Krimi  Games' (Doppelleerzeichen) verursachen
+        daher Parse-Fehler in generierten Journal-Dateien.
+        """
+        from src.converter import _sanitize_account_name
+
+        assert _sanitize_account_name("Krimi  Games") == "Krimi Games"
+        assert _sanitize_account_name("Foo   Bar   Baz") == "Foo Bar Baz"
+        # Einfache Leerzeichen bleiben erhalten
+        assert _sanitize_account_name("REWE GmbH") == "REWE GmbH"
+
+    def test_geschlossenes_konto_hat_valides_type_tag(self) -> None:
+        """
+        T028: account-Direktiven für geschlossene Konten dürfen kein zweites ';' nach
+        dem type-Tag haben.
+
+        hledger parst '; type: A  ; geschlossen' als type-Code 'A  ; geschlossen',
+        was einen Fehler ergibt. Korrekt: '; type: A, geschlossen: true'.
+        """
+        from src.converter import _add_account_declarations
+        from src.models import ACCOUNT_TYPE_BANK, AF_CLOSED, Account, HledgerJournal
+
+        closed_account = Account(
+            key=99,
+            name="Altes Konto",
+            account_type=ACCOUNT_TYPE_BANK,
+            currency_key=1,
+            initial_balance=Decimal("0"),
+            flags=AF_CLOSED,
+        )
+        from src.models import HomebankFile
+
+        hb = HomebankFile(base_currency_key=1)
+        hb.accounts[99] = closed_account
+
+        journal = HledgerJournal(year=2024, base_currency_iso="EUR")
+        _add_account_declarations(journal, hb, "EUR")
+
+        # Finde die Deklaration für das geschlossene Konto
+        closed_decls = [d for d in journal.account_declarations if "Altes Konto" in d]
+        assert len(closed_decls) == 1
+        decl = closed_decls[0]
+
+        # Darf kein zweites Semikolon nach dem type-Tag enthalten
+        # (würde hledger dazu verleiten, 'A  ; ...' als type-Code zu parsen)
+        type_part = decl.split("; type:")[-1]
+        assert ";;" not in decl  # kein doppeltes Semikolon
+        # Das type-Tag selbst muss auf einem einfachen Buchstaben enden
+        # (kein Leerzeichen + zweites Semikolon direkt nach dem Typ-Buchstaben)
+        assert "  ;" not in type_part

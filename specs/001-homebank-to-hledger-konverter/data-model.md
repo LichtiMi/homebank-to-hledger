@@ -122,6 +122,7 @@ Abgeleitete Eigenschaften:
 | 3 (Asset) | `Aktiva:Vermögen` | `A` |
 | 4 (Kreditkarte) | `Passiva:Kreditkarte` | `L` |
 | 5 (Liability) | `Passiva:Darlehen` | `L` |
+| 7 (Savings) | `Aktiva:Spareinlagen` | `A` |
 
 Vollständiger Kontoname: `<Präfix>:<bereinigter-Kontoname>`
 Bereinigung: `:` → `-`, führende/nachfolgende Leerzeichen entfernt.

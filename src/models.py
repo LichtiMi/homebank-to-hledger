@@ -38,6 +38,7 @@ ACCOUNT_TYPE_CASH = 2
 ACCOUNT_TYPE_ASSET = 3
 ACCOUNT_TYPE_CREDITCARD = 4
 ACCOUNT_TYPE_LIABILITY = 5
+ACCOUNT_TYPE_SAVINGS = 7  # Sparbuch / Savings (Homebank type=7)
 
 # Account-Flag-Bits (aus hb-account.h)
 AF_CLOSED = 1 << 1  # Konto geschlossen/archiviert
