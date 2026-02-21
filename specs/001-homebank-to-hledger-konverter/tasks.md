@@ -95,11 +95,11 @@ uv run pytest tests/test_parser.py tests/test_converter.py tests/test_writer.py 
 
 ### Bug-Fix für User Story 1 (entdeckt bei `hledger check`)
 
-- [ ] T027 [US1] **BUG-FIX**: Normalisiere mehrfache Leerzeichen in Kontonamen in
+- [x] T027 [US1] **BUG-FIX**: Normalisiere mehrfache Leerzeichen in Kontonamen in
   `src/converter.py` → `_sanitize_account_name()`: `re.sub(r' {2,}', ' ', name)`.
   Reproduktionstest in `tests/test_converter.py`:
   `test_doppeltes_leerzeichen_in_payee_name_wird_normalisiert()`
-- [ ] T028 [US1] **BUG-FIX**: Korrigiere Syntax der `account`-Direktive für geschlossene
+- [x] T028 [US1] **BUG-FIX**: Korrigiere Syntax der `account`-Direktive für geschlossene
   Konten in `src/converter.py` → `_add_account_declarations()`:
   `; type: A  ; geschlossen` → `; type: A, geschlossen: true`.
   Reproduktionstest in `tests/test_converter.py`:
@@ -229,20 +229,21 @@ uv run pytest tests/test_converter.py::TestConvert::test_kein_doppeltes_kxfer -v
 **Zweck**: Qualitätssicherung, End-to-End-Validierung, Konto-Typ-Vollständigkeit.
 Alle vier Verfassungsprinzipien werden auf die Gesamtimplementierung angewendet.
 
-- [ ] T048 [P] **[Code Quality]** Ergänze Konto-Typ 7 (Sparbuch/Savings) in `src/models.py`
+- [x] T048 [P] **[Code Quality]** Ergänze Konto-Typ 7 (Sparbuch/Savings) in `src/models.py`
   als `ACCOUNT_TYPE_SAVINGS = 7` und in `src/converter.py` → `_account_prefix()`:
   type 7 → `Aktiva:Spareinlagen`
-- [ ] T049 [P] **[Testing Standards]** Erstelle `tests/test_integration.py` mit
+- [x] T049 [P] **[Testing Standards]** Erstelle `tests/test_integration.py` mit
   End-to-End-Test: XHB parsen → konvertieren → schreiben → `hledger check` auf Output.
   Nur ausführen wenn `hledger` im PATH vorhanden (via `shutil.which("hledger")`)
-- [ ] T050 **[UX Consistency]** Aktualisiere `README.md` mit vollständiger Verwendungsdokumentation:
+- [x] T050 **[UX Consistency]** Aktualisiere `README.md` mit vollständiger Verwendungsdokumentation:
   Installation, Beispielaufruf, Konventions-Tabelle, Exit-Codes
-- [ ] T051 **[Testing Standards]** Führe `uv run pytest` aus — bestätige 0 Fehler,
+- [x] T051 **[Testing Standards]** Führe `uv run pytest` aus — bestätige 0 Fehler,
   validiere alle Repro-Tests für T027 und T028 schlagen vor dem Fix fehl
-- [ ] T052 **[Code Quality]** Führe `uv run ruff format . && uv run ruff check . --fix` aus
-- [ ] T053 **[Code Quality]** Führe `uv run mypy .` aus — bestätige 0 Fehler (strict)
-- [ ] T054 **[Performance]** Validiere Quickstart (`specs/001-homebank-to-hledger-konverter/quickstart.md`):
+- [x] T052 **[Code Quality]** Führe `uv run ruff format . && uv run ruff check . --fix` aus
+- [x] T053 **[Code Quality]** Führe `uv run mypy .` aus — bestätige 0 Fehler (strict)
+- [x] T054 **[Performance]** Validiere Quickstart (`specs/001-homebank-to-hledger-konverter/quickstart.md`):
   Konvertierung der echten XHB-Datei in <10s, Ausgabe in <256 MB RAM
+  (Ergebnis: 0,54s Laufzeit, 37 MB RAM — weit unter den Grenzwerten)
 
 ---
 
